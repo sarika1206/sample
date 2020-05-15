@@ -1,0 +1,963 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "CloudFormation Template to Create Network Resources and EC2",
+    "Parameters": {
+        "Project": {
+            "Description": "Description of Project",
+            "Type": "String",
+            "Default": "MyNetwork"
+        },
+        "VpcCidr": {
+            "Description": "CIDR Block for VPC Creation",
+            "Type": "String",
+            "Default": "10.0.0.0/16"
+        },
+        "PubSubnet1A": {
+            "Description": "CIDR Block for Public Subnet Zone-A",
+            "Type": "String",
+            "Default": "10.0.0.0/24"
+        },
+        "PubSubnet1B": {
+            "Description": "CIDR Block for Public Subnet Zone-B",
+            "Type": "String",
+            "Default": "10.0.1.0/24"
+        },
+        "PvtSubnet1a": {
+            "Description": "CIDR Block for Private Subnet Zone-A",
+            "Type": "String",
+            "Default": "10.0.2.0/24"
+        },
+        "PvtSubnet1B": {
+            "Description": "CIDR Block for Private Subnet Zone-B",
+            "Type": "String",
+            "Default": "10.0.3.0/24"
+        },
+        "InstanceType": {
+            "Description": "The EC2 instance type",
+            "Type": "String",
+            "Default": "t2.micro",
+            "AllowedValues": [
+                "t1.micro",
+                "t2.micro",
+                "t2.small",
+                "t2.medium",
+                "m1.small",
+                "m1.medium",
+                "m1.large",
+                "m1.xlarge",
+                "m2.xlarge",
+                "m2.2xlarge",
+                "m2.4xlarge",
+                "m3.medium",
+                "m3.large",
+                "m3.xlarge",
+                "m3.2xlarge",
+                "c1.medium",
+                "c1.xlarge",
+                "c3.large",
+                "c3.xlarge",
+                "c3.2xlarge",
+                "c3.4xlarge",
+                "c3.8xlarge",
+                "c4.large",
+                "c4.xlarge",
+                "c4.2xlarge",
+                "c4.4xlarge",
+                "c4.8xlarge",
+                "g2.2xlarge",
+                "r3.large",
+                "r3.xlarge",
+                "r3.2xlarge",
+                "r3.4xlarge",
+                "r3.8xlarge",
+                "i2.xlarge",
+                "i2.2xlarge",
+                "i2.4xlarge",
+                "i2.8xlarge",
+                "d2.xlarge",
+                "d2.2xlarge",
+                "d2.4xlarge",
+                "d2.8xlarge",
+                "hi1.4xlarge",
+                "hs1.8xlarge",
+                "cr1.8xlarge",
+                "cc2.8xlarge",
+                "cg1.4xlarge"
+            ],
+            "ConstraintDescription": "must be a valid EC2 instance type."
+        },
+        "ec2keypair": {
+            "Type": "String",
+            "Description": "Enter the keyPair name"
+        },
+        "SSHLocation": {
+            "Description": "The IP address range that can be used access the web server using SSH.",
+            "Type": "String",
+            "MinLength": "9",
+            "MaxLength": "18",
+            "Default": "0.0.0.0/0",
+            "AllowedPattern": "(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})\\.(\\d{1,3})/(\\d{1,2})",
+            "ConstraintDescription": "must be a valid IP CIDR range of the form x.x.x.x/x."
+        },
+        "DefAMIID": {
+            "Type": "AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>",
+            "Default": "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+        }
+    },
+    "Mappings": {
+        "AWSInstanceType2Arch": {
+            "t1.micro": {
+                "Arch": "PV64"
+            },
+            "t2.micro": {
+                "Arch": "HVM64"
+            },
+            "t2.small": {
+                "Arch": "HVM64"
+            },
+            "t2.medium": {
+                "Arch": "HVM64"
+            },
+            "m1.small": {
+                "Arch": "PV64"
+            },
+            "m1.medium": {
+                "Arch": "PV64"
+            },
+            "m1.large": {
+                "Arch": "PV64"
+            },
+            "m1.xlarge": {
+                "Arch": "PV64"
+            },
+            "m2.xlarge": {
+                "Arch": "PV64"
+            },
+            "m2.2xlarge": {
+                "Arch": "PV64"
+            },
+            "m2.4xlarge": {
+                "Arch": "PV64"
+            },
+            "m3.medium": {
+                "Arch": "HVM64"
+            },
+            "m3.large": {
+                "Arch": "HVM64"
+            },
+            "m3.xlarge": {
+                "Arch": "HVM64"
+            },
+            "m3.2xlarge": {
+                "Arch": "HVM64"
+            },
+            "c1.medium": {
+                "Arch": "PV64"
+            },
+            "c1.xlarge": {
+                "Arch": "PV64"
+            },
+            "c3.large": {
+                "Arch": "HVM64"
+            },
+            "c3.xlarge": {
+                "Arch": "HVM64"
+            },
+            "c3.2xlarge": {
+                "Arch": "HVM64"
+            },
+            "c3.4xlarge": {
+                "Arch": "HVM64"
+            },
+            "c3.8xlarge": {
+                "Arch": "HVM64"
+            },
+            "c4.large": {
+                "Arch": "HVM64"
+            },
+            "c4.xlarge": {
+                "Arch": "HVM64"
+            },
+            "c4.2xlarge": {
+                "Arch": "HVM64"
+            },
+            "c4.4xlarge": {
+                "Arch": "HVM64"
+            },
+            "c4.8xlarge": {
+                "Arch": "HVM64"
+            },
+            "g2.2xlarge": {
+                "Arch": "HVMG2"
+            },
+            "r3.large": {
+                "Arch": "HVM64"
+            },
+            "r3.xlarge": {
+                "Arch": "HVM64"
+            },
+            "r3.2xlarge": {
+                "Arch": "HVM64"
+            },
+            "r3.4xlarge": {
+                "Arch": "HVM64"
+            },
+            "r3.8xlarge": {
+                "Arch": "HVM64"
+            },
+            "i2.xlarge": {
+                "Arch": "HVM64"
+            },
+            "i2.2xlarge": {
+                "Arch": "HVM64"
+            },
+            "i2.4xlarge": {
+                "Arch": "HVM64"
+            },
+            "i2.8xlarge": {
+                "Arch": "HVM64"
+            },
+            "d2.xlarge": {
+                "Arch": "HVM64"
+            },
+            "d2.2xlarge": {
+                "Arch": "HVM64"
+            },
+            "d2.4xlarge": {
+                "Arch": "HVM64"
+            },
+            "d2.8xlarge": {
+                "Arch": "HVM64"
+            },
+            "hi1.4xlarge": {
+                "Arch": "HVM64"
+            },
+            "hs1.8xlarge": {
+                "Arch": "HVM64"
+            },
+            "cr1.8xlarge": {
+                "Arch": "HVM64"
+            },
+            "cc2.8xlarge": {
+                "Arch": "HVM64"
+            }
+        },
+        "AWSRegionArch2AMI": {
+            "us-east-1": {
+                "PV64": "ami-1ccae774",
+                "HVM64": "ami-1ecae776",
+                "HVMG2": "ami-8c6b40e4"
+            },
+            "us-west-2": {
+                "PV64": "ami-ff527ecf",
+                "HVM64": "ami-e7527ed7",
+                "HVMG2": "ami-abbe919b"
+            },
+            "us-west-1": {
+                "PV64": "ami-d514f291",
+                "HVM64": "ami-d114f295",
+                "HVMG2": "ami-f31ffeb7"
+            },
+            "eu-west-1": {
+                "PV64": "ami-bf0897c8",
+                "HVM64": "ami-a10897d6",
+                "HVMG2": "ami-d5bc24a2"
+            },
+            "eu-central-1": {
+                "PV64": "ami-ac221fb1",
+                "HVM64": "ami-a8221fb5",
+                "HVMG2": "ami-7cd2ef61"
+            },
+            "ap-northeast-1": {
+                "PV64": "ami-27f90e27",
+                "HVM64": "ami-cbf90ecb",
+                "HVMG2": "ami-6318e863"
+            },
+            "ap-southeast-1": {
+                "PV64": "ami-acd9e8fe",
+                "HVM64": "ami-68d8e93a",
+                "HVMG2": "ami-3807376a"
+            },
+            "ap-southeast-2": {
+                "PV64": "ami-ff9cecc5",
+                "HVM64": "ami-fd9cecc7",
+                "HVMG2": "ami-89790ab3"
+            },
+            "sa-east-1": {
+                "PV64": "ami-bb2890a6",
+                "HVM64": "ami-b52890a8",
+                "HVMG2": "NOT_SUPPORTED"
+            },
+            "cn-north-1": {
+                "PV64": "ami-fa39abc3",
+                "HVM64": "ami-f239abcb",
+                "HVMG2": "NOT_SUPPORTED"
+            }
+        }
+    },
+    "Resources": {
+        "myVPC": {
+            "Type": "AWS::EC2::VPC",
+            "Properties": {
+                "CidrBlock": {
+                    "Ref": "VpcCidr"
+                },
+                "EnableDnsSupport": true,
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-vpc"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "myIGW": {
+            "Type": "AWS::EC2::InternetGateway",
+            "DependsOn": "myVPC",
+            "Properties": {
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-igw"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "AttachGateway": {
+            "Type": "AWS::EC2::VPCGatewayAttachment",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "InternetGatewayId": {
+                    "Ref": "myIGW"
+                }
+            }
+        },
+        "PublicSubnet1A": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        0,
+                        {
+                            "Fn::GetAZs": ""
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "CidrBlock": {
+                    "Ref": "PubSubnet1A"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-pub-sub1a"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "PublicSubnet1B": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        1,
+                        {
+                            "Fn::GetAZs": ""
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "CidrBlock": {
+                    "Ref": "PubSubnet1B"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-pub-sub1b"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "PrivateSubnet1A": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        0,
+                        {
+                            "Fn::GetAZs": ""
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "CidrBlock": {
+                    "Ref": "PvtSubnet1a"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-pvt-sub1a"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "PrivateSubnet1B": {
+            "Type": "AWS::EC2::Subnet",
+            "Properties": {
+                "AvailabilityZone": {
+                    "Fn::Select": [
+                        1,
+                        {
+                            "Fn::GetAZs": ""
+                        }
+                    ]
+                },
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "CidrBlock": {
+                    "Ref": "PvtSubnet1B"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-pvt-sub1b"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "myNATGw": {
+            "Type": "AWS::EC2::NatGateway",
+            "DependsOn": "EIP",
+            "Properties": {
+                "AllocationId": {
+                    "Fn::GetAtt": [
+                        "EIP",
+                        "AllocationId"
+                    ]
+                },
+                "SubnetId": {
+                    "Ref": "PublicSubnet1A"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-nat-gw"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "EIP": {
+            "Type": "AWS::EC2::EIP",
+            "Properties": {
+                "Domain": "vpc",
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-nat-eip"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "PubrouteTableName": {
+            "Type": "AWS::EC2::RouteTable",
+            "DependsOn": "myIGW",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-pub-route"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "pubrouteName": {
+            "Type": "AWS::EC2::Route",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PubrouteTableName"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "GatewayId": {
+                    "Ref": "myIGW"
+                }
+            }
+        },
+        "pubsubArouteTableAssocName": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PublicSubnet1A"
+                },
+                "RouteTableId": {
+                    "Ref": "PubrouteTableName"
+                }
+            }
+        },
+        "pubsubBrouteTableAssocName": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PublicSubnet1B"
+                },
+                "RouteTableId": {
+                    "Ref": "PubrouteTableName"
+                }
+            }
+        },
+        "PvtrouteTableName": {
+            "Type": "AWS::EC2::RouteTable",
+            "DependsOn": "myNATGw",
+            "Properties": {
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "-pvt-route"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "pvtrouteName": {
+            "Type": "AWS::EC2::Route",
+            "DependsOn": "myNATGw",
+            "Properties": {
+                "RouteTableId": {
+                    "Ref": "PvtrouteTableName"
+                },
+                "DestinationCidrBlock": "0.0.0.0/0",
+                "NatGatewayId": {
+                    "Ref": "myNATGw"
+                }
+            }
+        },
+        "pvtsubArouteTableAssocName": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PrivateSubnet1A"
+                },
+                "RouteTableId": {
+                    "Ref": "PvtrouteTableName"
+                }
+            }
+        },
+        "pvtsubBrouteTableAssocName": {
+            "Type": "AWS::EC2::SubnetRouteTableAssociation",
+            "Properties": {
+                "SubnetId": {
+                    "Ref": "PrivateSubnet1B"
+                },
+                "RouteTableId": {
+                    "Ref": "PvtrouteTableName"
+                }
+            }
+        },
+        "MySecurityGroup": {
+            "Type": "AWS::EC2::SecurityGroup",
+            "Properties": {
+                "GroupName": "MySecurityGroup",
+                "GroupDescription": "Security Group for Host",
+                "VpcId": {
+                    "Ref": "myVPC"
+                },
+                "SecurityGroupIngress": [
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "22",
+                        "ToPort": "22",
+                        "CidrIp": {
+                            "Ref": "SSHLocation"
+                        }
+                    },
+                    {
+                        "IpProtocol": "tcp",
+                        "FromPort": "80",
+                        "ToPort": "80",
+                        "CidrIp": "0.0.0.0/0"
+                    }
+                ],
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "- my-sg"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "MyEC2": {
+            "Type": "AWS::EC2::Instance",
+            "Properties": {
+                "NetworkInterfaces": [
+                    {
+                        "AssociatePublicIpAddress": "true",
+                        "DeviceIndex": "0",
+                        "GroupSet": [
+                            {
+                                "Ref": "MySecurityGroup"
+                            }
+                        ],
+                        "SubnetId": {
+                            "Ref": "PublicSubnet1A"
+                        }
+                    }
+                ],
+                "KeyName": {
+                    "Ref": "ec2keypair"
+                },
+                "ImageId": {
+                    "Ref": "DefAMIID"
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "Monitoring": false,
+                "IamInstanceProfile": {
+                    "Ref": "EC2InstanceProfile"
+                },
+                "UserData": {
+                    "Fn::Base64": "#!/bin/bash -ex\nsudo yum update -y\nsudo yum install nginx\nsudo systemctl start nginx\n"
+                },
+                "Tags": [
+                    {
+                        "Key": "Name",
+                        "Value": {
+                            "Fn::Join": [
+                                "",
+                                [
+                                    {
+                                        "Ref": "AWS::StackName"
+                                    },
+                                    "- My-host"
+                                ]
+                            ]
+                        }
+                    },
+                    {
+                        "Key": "Project",
+                        "Value": {
+                            "Ref": "Project"
+                        }
+                    }
+                ]
+            }
+        },
+        "EC2InstanceProfile": {
+            "Type": "AWS::IAM::InstanceProfile",
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "EC2Role"
+                    }
+                ]
+            }
+        },
+        "EC2Role": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Path": "/",
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+                ],
+                "Policies": [
+                    {
+                        "PolicyName": "ssm-instance-policy",
+                        "PolicyDocument": {
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "*",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        }
+    },
+    "Outputs": {
+        "VPCID": {
+            "Value": {
+                "Ref": "myVPC"
+            },
+            "Description": "VPCID of the vpc",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-VPCID"
+                }
+            }
+        },
+        "VpcCidr": {
+            "Value": {
+                "Ref": "VpcCidr"
+            },
+            "Description": "VPC CIDR of the vpc",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-EVPCIDR"
+                }
+            }
+        },
+        "PublicSubnet1A": {
+            "Value": {
+                "Ref": "PublicSubnet1A"
+            },
+            "Description": "Public Subnet for AZ-1",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-pub-1a"
+                }
+            }
+        },
+        "PublicSubnet1B": {
+            "Value": {
+                "Ref": "PublicSubnet1B"
+            },
+            "Description": "Public Subnet for AZ-2",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-pub-1b"
+                }
+            }
+        },
+        "PrivateSubnet1A": {
+            "Value": {
+                "Ref": "PrivateSubnet1A"
+            },
+            "Description": "Private Subnet for AZ-1",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-pvt-1a"
+                }
+            }
+        },
+        "PrivateSubnet1B": {
+            "Value": {
+                "Ref": "PrivateSubnet1B"
+            },
+            "Description": "Private Subnet for AZ-2",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-pvt-1b"
+                }
+            }
+        },
+        "IP": {
+            "Value": {
+                "Ref": "MyEC2"
+            },
+            "Description": "IP of Host",
+            "Export": {
+                "Name": {
+                    "Fn::Sub": "${AWS::StackName}-Host"
+                }
+            }
+        }
+    }
+}
