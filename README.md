@@ -1,5 +1,5 @@
-# aws-tool
-#This is for sample aws-tool with python
+### aws-tool
+##This is for sample aws-tool with python
 #create a venv 
 pip install virtualenv
 virtualvenv %name of the enviornment%
@@ -11,5 +11,5 @@ pip install requirement.txt
 aws configure  (provide the secret key and access key)
 # Set PYTHONPATH
 export PYTHONPATH=%pythonpath%
-# now run the aws-to0l.py file
+# now run the aws-tool.py file
 run aws-tool.py -h (it will print the help, where you can check all other options to be run)
