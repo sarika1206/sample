@@ -6,7 +6,6 @@ import random
 import boto3
 import click
 import json
-import date
 
 
 class AwsTool:
