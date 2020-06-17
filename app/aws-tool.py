@@ -1,4 +1,4 @@
-""" Develop a Commandline utility for building simple AWS environment """
+""" Develop a Commandline utility for building simple AWS environment....."""
 #!/usr/bin/env python
 import os
 import string
